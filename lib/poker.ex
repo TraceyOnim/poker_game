@@ -12,33 +12,41 @@ defmodule Poker do
       suits: suits(hand),
       values: values(hand),
       hand: hand,
-      player: player
+      player: player,
+      rank: :none
     }
   end
 
   def rank(%{suits: [suit | _] = suits, values: values} = poker_deck) do
     same_suits? = Enum.all?(suits, fn s -> String.equivalent?(s, suit) end)
 
-    if same_suits? do
-      flush_or_straight_flush(values)
-    else
-      # other ranks
+    rank =
+      if same_suits? do
+        flush_or_straight_flush(values)
+      else
+        rank(values)
+      end
+
+    %{poker_deck | rank: rank}
+  end
+
+  def rank(values, rank \\ :none) do
+    {_values, rank} =
+      {values, rank}
+      |> rank_as_pair()
+      |> rank_as_two_pair()
+      |> rank_as_three_of_a_kind()
+      |> rank_as_straight()
+      |> rank_as_full_house()
+      |> rank_as_four_of_a_kind()
+
+    case rank do
+      :none -> :high_card
+      rank -> rank
     end
   end
 
-  defp other_ranks(values, rank \\ :none) do
-    {values, rank}
-    |> rank_as_pair()
-    |> rank_as_two_pair()
-
-    # |> rank_as_three_of_a_kind()
-    # |> rank_as_straight()
-    # |> rank_as_full_house()
-    # |> rank_as_four_of_a_kind()
-    # |> rank_as_high_card()
-  end
-
-  def rank_as_pair({values, rank}) do
+  defp rank_as_pair({values, rank}) do
     count =
       values
       |> Enum.frequencies()
@@ -52,10 +60,81 @@ defmodule Poker do
     end
   end
 
-  def rank_as_two_pair({values, :none}) do
+  defp rank_as_pair(rank_card), do: rank_card
+
+  defp rank_as_two_pair({values, :none = rank}) do
+    count =
+      values
+      |> Enum.frequencies()
+      |> Enum.filter(fn {_value, frequency} -> frequency == 2 end)
+      |> Enum.count()
+
+    if count == 2 do
+      {values, :two_pair}
+    else
+      {values, rank}
+    end
   end
 
-  def rank_as_two_pair(rank_card), do: rank_card
+  defp rank_as_two_pair(rank_card), do: rank_card
+
+  defp rank_as_three_of_a_kind({values, :none = rank}) do
+    count =
+      values
+      |> Enum.frequencies()
+      |> Enum.filter(fn {_value, frequency} -> frequency == 3 end)
+      |> Enum.count()
+
+    if count == 1 do
+      {values, :three_of_a_kind}
+    else
+      {values, rank}
+    end
+  end
+
+  defp rank_as_three_of_a_kind(rank_card), do: rank_card
+
+  defp rank_as_straight({values, :none = rank}) do
+    if consecutive_values?(values) do
+      {values, :straight}
+    else
+      {values, rank}
+    end
+  end
+
+  defp rank_as_straight(rank_card), do: rank_card
+
+  defp rank_as_full_house({values, :none = rank}) do
+    frequencies =
+      values
+      |> Enum.frequencies()
+      |> Enum.map(fn {_value, frequency} -> frequency end)
+      |> Enum.sort()
+
+    if frequencies == [2, 3] do
+      {values, :full_house}
+    else
+      {values, rank}
+    end
+  end
+
+  defp rank_as_full_house(rank_card), do: rank_card
+
+  defp rank_as_four_of_a_kind({values, :none = rank}) do
+    frequencies =
+      values
+      |> Enum.frequencies()
+      |> Enum.map(fn {_value, frequency} -> frequency end)
+      |> Enum.sort()
+
+    if frequencies == [1, 4] do
+      {values, :four_of_a_kind}
+    else
+      {values, rank}
+    end
+  end
+
+  defp rank_as_four_of_a_kind(rank_card), do: rank_card
 
   defp flush_or_straight_flush(values) do
     if consecutive_values?(values) do
