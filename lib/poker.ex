@@ -2,12 +2,19 @@ defmodule Poker do
   defstruct [:rank, :values, :suits, :player, :hand]
 
   @card_values ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"]
+  @rank [
+    :high_card,
+    :pair,
+    :two_pair,
+    :three_of_a_kind,
+    :straight,
+    :flush,
+    :full_house,
+    :four_of_a_kind,
+    :straight_flush
+  ]
 
-  def new(hand \\ []) do
-    %__MODULE__{hand: hand}
-  end
-
-  def poker_deck({hand, player}) do
+  def new(hand, player) do
     %__MODULE__{
       suits: suits(hand),
       values: values(hand),
@@ -15,6 +22,16 @@ defmodule Poker do
       player: player,
       rank: :none
     }
+  end
+
+  # def higher_rank(%{black: black_hand, white: white_hand}) do
+  # end
+
+  def player_rank(hand, player) do
+    hand
+    |> new(player)
+    |> rank()
+    |> rank_points()
   end
 
   def rank(%{suits: [suit | _] = suits, values: values} = poker_deck) do
@@ -33,11 +50,11 @@ defmodule Poker do
   def rank(values, rank \\ :none) do
     {_values, rank} =
       {values, rank}
+      |> rank_as_full_house()
       |> rank_as_pair()
       |> rank_as_two_pair()
       |> rank_as_three_of_a_kind()
       |> rank_as_straight()
-      |> rank_as_full_house()
       |> rank_as_four_of_a_kind()
 
     case rank do
@@ -46,7 +63,23 @@ defmodule Poker do
     end
   end
 
-  defp rank_as_pair({values, rank}) do
+  defp rank_as_full_house({values, :none = rank}) do
+    frequencies =
+      values
+      |> Enum.frequencies()
+      |> Enum.map(fn {_value, frequency} -> frequency end)
+      |> Enum.sort()
+
+    if frequencies == [2, 3] do
+      {values, :full_house}
+    else
+      {values, rank}
+    end
+  end
+
+  defp rank_as_full_house(rank_card), do: rank_card
+
+  defp rank_as_pair({values, :none = rank}) do
     count =
       values
       |> Enum.frequencies()
@@ -104,22 +137,6 @@ defmodule Poker do
 
   defp rank_as_straight(rank_card), do: rank_card
 
-  defp rank_as_full_house({values, :none = rank}) do
-    frequencies =
-      values
-      |> Enum.frequencies()
-      |> Enum.map(fn {_value, frequency} -> frequency end)
-      |> Enum.sort()
-
-    if frequencies == [2, 3] do
-      {values, :full_house}
-    else
-      {values, rank}
-    end
-  end
-
-  defp rank_as_full_house(rank_card), do: rank_card
-
   defp rank_as_four_of_a_kind({values, :none = rank}) do
     frequencies =
       values
@@ -152,6 +169,15 @@ defmodule Poker do
     end)
     |> Enum.chunk_every(2, 1, :discard)
     |> Enum.all?(fn [x, y] -> y == x + 1 end)
+  end
+
+  defp rank_points(%{rank: rank} = poker_deck) do
+    rank =
+      @rank
+      |> Enum.zip(1..9)
+      |> Enum.find(fn {rank_name, _point} -> rank_name == rank end)
+
+    %{poker_deck | rank: rank}
   end
 
   defp suits(hand) do
