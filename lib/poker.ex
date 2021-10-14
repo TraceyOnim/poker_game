@@ -24,10 +24,99 @@ defmodule Poker do
     }
   end
 
-  # def higher_rank(%{black: black_hand, white: white_hand}) do
+  # def higher_rank(%{first_player: first_player, second_player: second_player}) do
+  #   _higher_rank(player_rank(first_player), player_rank(second_player))
   # end
 
-  def player_rank(hand, player) do
+  # defp _higher_rank(
+  #        %Poker{rank: {first_rank, first_rank_point}} = first_player,
+  #        %Poker{rank: {second_rank, second_rank_point}} = second_player
+  #      ) do
+  #   if first_rank_point == second_rank_point do
+  #     "===================="
+  #     _high_value_from_similar_rank(first_player, second_player)
+  #   else
+  #     max_point = max(first_rank_point, second_rank_point)
+
+  #     Enum.find([first_player.rank, second_player.rank], fn {_rank, point} ->
+  #       point == max_point
+  #     end)
+  #   end
+  # end
+
+  # defp _high_value_from_similar_rank(
+  #        %Poker{rank: {first_rank, first_rank_point}} = first_player,
+  #        %Poker{rank: {second_rank, second_rank_point}} = second_player
+  #      ) do
+  #   case first_rank && second_rank do
+  #     :high_card ->
+  #       [
+  #         max_player_value(first_player.values, first_player.player),
+  #         max_player_value(second_player.values, second_player.player)
+  #       ]
+  #       |> Enum.max_by(fn {_value, index, _player} -> index end)
+  #       |> Tuple.insert_at(0, :high_card)
+
+  #     :pair ->
+  #       if pair_index(first_player.values) == pair_index(second_player.values) do
+  #         [
+  #           max_player_value(Enum.uniq(first_player.values), first_player.player),
+  #           max_player_value(Enum.uniq(second_player.values), second_player.player)
+  #         ]
+  #         |> Enum.max_by(fn {_value, index, _player} -> index end)
+  #         |> Tuple.insert_at(0, :high_card)
+  #       end
+  #   end
+  # end
+
+  def highest_value(player1_values, player2_values, :pair) do
+    {player1_index, _pair_values} = pair_value(player1_values)
+    {player2_index, _pair_values} = pair_value(player2_values)
+
+    if player1_index == player2_index do
+      player1_highest_card = highest_value(player1_values, :pair)
+      player2_highest_card = highest_value(player2_values, :pair)
+
+      Enum.max_by(
+        [highest_value(player1_values, :pair), highest_value(player2_values, :pair)],
+        fn {index, value} -> index end
+      )
+    else
+      Enum.max_by(
+        [pair_value(player1_values), pair_value(player2_values)],
+        fn {index, value} -> index end
+      )
+    end
+  end
+
+  def highest_value(values, :pair) do
+    values
+    |> group_card_value_with_index()
+    |> Enum.reject(fn {index, value} -> Enum.count(value) == 2 end)
+    |> Enum.max_by(fn {index, _value} -> index end)
+  end
+
+  def pair_value(values) do
+    values
+    |> group_card_value_with_index()
+    |> Enum.find(fn {_k, v} -> Enum.count(v) == 2 end)
+  end
+
+  def group_card_value_with_index(values) do
+    card_values = Enum.with_index(@card_values)
+
+    for value <- values do
+      Enum.filter(card_values, fn {v, _i} -> v == value end)
+    end
+    |> List.flatten()
+    |> Enum.group_by(fn {_k, index} -> index end)
+
+    # |> Enum.max_by(fn {_value, index} -> index end)
+
+    # |> Tuple.append(player)
+  end
+
+  def player_rank({hand, player}) do
     hand
     |> new(player)
     |> rank()
@@ -160,6 +249,23 @@ defmodule Poker do
       :flush
     end
   end
+
+  # def pair_index(values) do
+  #   card_values = Enum.with_index(@card_values)
+
+  #   {_values, [index | _]} =
+  #     for value <- values do
+  #       Enum.filter(card_values, fn {v, _i} -> v == value end)
+  #     end
+  #     |> List.flatten()
+  #     |> Enum.sort_by(fn {_value, index} -> index end)
+  #     |> Enum.chunk_every(2, 1, :discard)
+  #     |> Enum.filter(fn [{_v1, i1}, {_v2, i2}] -> i1 == i2 end)
+  #     |> List.flatten()
+  #     |> Enum.unzip()
+
+  #   index
+  # end
 
   defp consecutive_values?(values) do
     @card_values
