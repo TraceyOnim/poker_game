@@ -69,9 +69,16 @@ defmodule Poker do
   #   end
   # end
 
+  def highest_value(player1_values, player2_values, :high_card) do
+    Enum.max_by(
+      [highest_value(player1_values, :high_card), highest_value(player2_values, :high_card)],
+      fn {index, value} -> index end
+    )
+  end
+
   def highest_value(player1_values, player2_values, :pair) do
-    {player1_index, _pair_values} = pair_value(player1_values)
-    {player2_index, _pair_values} = pair_value(player2_values)
+    [{player1_index, _pair_values}] = pair_value(player1_values)
+    [{player2_index, _pair_values}] = pair_value(player2_values)
 
     if player1_index == player2_index do
       player1_highest_card = highest_value(player1_values, :pair)
@@ -79,14 +86,69 @@ defmodule Poker do
 
       Enum.max_by(
         [highest_value(player1_values, :pair), highest_value(player2_values, :pair)],
-        fn {index, value} -> index end
+        fn {index, _value} -> index end
       )
     else
       Enum.max_by(
-        [pair_value(player1_values), pair_value(player2_values)],
-        fn {index, value} -> index end
+        pair_value(player1_values) ++ pair_value(player2_values),
+        fn {index, _value} -> index end
       )
     end
+  end
+
+  def highest_value(player1_values, player2_values, :two_pair) do
+    highest_two_pair(player1_values, player2_values, :max_two_pair)
+  end
+
+  def highest_two_pair(player1_values, player2_values, :max_two_pair) do
+    # max pair value
+    {player1_index, _pair_values} = max_pair_value(player1_values, :two_pair)
+    {player2_index, _pair_values} = max_pair_value(player2_values, :two_pair)
+
+    if player1_index == player2_index do
+      highest_two_pair(player1_values, player2_values, :min_two_pair)
+    else
+      Enum.max_by(
+        [max_pair_value(player1_values, :two_pair), max_pair_value(player2_values, :two_pair)],
+        fn {index, _value} -> index end
+      )
+    end
+  end
+
+  def highest_two_pair(player1_values, player2_values, :min_two_pair) do
+    # min pair value
+    {player1_index, _pair_values} = min_pair_value(player1_values, :two_pair)
+    {player2_index, _pair_values} = min_pair_value(player2_values, :two_pair)
+
+    if player1_index == player2_index do
+      Enum.max_by(
+        [highest_value(player1_values, :pair), highest_value(player2_values, :pair)],
+        fn {index, _value} -> index end
+      )
+    else
+      Enum.max_by(
+        [min_pair_value(player1_values, :two_pair), min_pair_value(player2_values, :two_pair)],
+        fn {index, _value} -> index end
+      )
+    end
+  end
+
+  def max_pair_value(values, :two_pair) do
+    values
+    |> pair_value()
+    |> Enum.max_by(fn {index, value} -> index end)
+  end
+
+  def min_pair_value(values, :two_pair) do
+    values
+    |> pair_value()
+    |> Enum.min_by(fn {index, value} -> index end)
+  end
+
+  def highest_value(values, :high_card) do
+    values
+    |> group_card_value_with_index()
+    |> Enum.max_by(fn {index, _value} -> index end)
   end
 
   def highest_value(values, :pair) do
@@ -99,7 +161,7 @@ defmodule Poker do
   def pair_value(values) do
     values
     |> group_card_value_with_index()
-    |> Enum.find(fn {_k, v} -> Enum.count(v) == 2 end)
+    |> Enum.filter(fn {_k, v} -> Enum.count(v) == 2 end)
   end
 
   def group_card_value_with_index(values) do
