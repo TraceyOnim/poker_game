@@ -69,7 +69,7 @@ defmodule Poker do
   #   end
   # end
 
-  def highest_value(player1_values, player2_values, :high_card) do
+  def highest_value(player1_values, player2_values, :high_card_or_flush_or_straight) do
     Enum.max_by(
       [highest_value(player1_values, :high_card), highest_value(player2_values, :high_card)],
       fn {index, value} -> index end
