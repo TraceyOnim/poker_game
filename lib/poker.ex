@@ -76,6 +76,20 @@ defmodule Poker do
     )
   end
 
+  def highest_value(player1_values, player2_values, :three_of_a_kind_or_full_house) do
+    Enum.max_by(
+      tripple_value(player1_values) ++ tripple_value(player2_values),
+      fn {index, _value} -> index end
+    )
+  end
+
+  def highest_value(player1_values, player2_values, :four_of_a_kind) do
+    Enum.max_by(
+      quad_value(player1_values) ++ quad_value(player2_values),
+      fn {index, _value} -> index end
+    )
+  end
+
   def highest_value(player1_values, player2_values, :pair) do
     [{player1_index, _pair_values}] = pair_value(player1_values)
     [{player2_index, _pair_values}] = pair_value(player2_values)
@@ -164,6 +178,18 @@ defmodule Poker do
     |> Enum.filter(fn {_k, v} -> Enum.count(v) == 2 end)
   end
 
+  def tripple_value(values) do
+    values
+    |> group_card_value_with_index()
+    |> Enum.filter(fn {_k, v} -> Enum.count(v) == 3 end)
+  end
+
+  def quad_value(values) do
+    values
+    |> group_card_value_with_index()
+    |> Enum.filter(fn {_k, v} -> Enum.count(v) == 4 end)
+  end
+
   def group_card_value_with_index(values) do
     card_values = Enum.with_index(@card_values)
 
@@ -172,10 +198,6 @@ defmodule Poker do
     end
     |> List.flatten()
     |> Enum.group_by(fn {_k, index} -> index end)
-
-    # |> Enum.max_by(fn {_value, index} -> index end)
-
-    # |> Tuple.append(player)
   end
 
   def player_rank({hand, player}) do
@@ -311,23 +333,6 @@ defmodule Poker do
       :flush
     end
   end
-
-  # def pair_index(values) do
-  #   card_values = Enum.with_index(@card_values)
-
-  #   {_values, [index | _]} =
-  #     for value <- values do
-  #       Enum.filter(card_values, fn {v, _i} -> v == value end)
-  #     end
-  #     |> List.flatten()
-  #     |> Enum.sort_by(fn {_value, index} -> index end)
-  #     |> Enum.chunk_every(2, 1, :discard)
-  #     |> Enum.filter(fn [{_v1, i1}, {_v2, i2}] -> i1 == i2 end)
-  #     |> List.flatten()
-  #     |> Enum.unzip()
-
-  #   index
-  # end
 
   defp consecutive_values?(values) do
     @card_values
