@@ -84,12 +84,12 @@ defmodule Poker do
       player1_rank = first_player.rank |> Tuple.append(first_player.player)
       player2_rank = second_player.rank |> Tuple.append(second_player.player)
 
-      {rank, value, player} =
+      {rank, _rank_point, player} =
         Enum.find([player1_rank, player2_rank], fn {_rank, point, _player} ->
           point == max_point
         end)
 
-      "#{player} wins - #{rank}: #{value}"
+      "#{player} wins - #{rank}"
     end
   end
 
