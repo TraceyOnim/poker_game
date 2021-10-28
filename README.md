@@ -35,6 +35,9 @@ are ranked by the value of their other pair. If these
 values are the same the hands are ranked by the value
 of the remaining card.
 
+
+
+
 Three of a Kind: Three of the cards in the hand have the
 same value. Hands which both contain three of a kind are
 ranked by the value of the 3 cards.
@@ -68,3 +71,40 @@ Output: Black wins - high card: 9
 
 Input: Black: 2H 3D 5S 9C KD White: 2D 3H 5C 9S KH
 Output: Tie
+
+
+
+
+
+## How to test
+```elixir
+iex(1) > hand1 = ["2S", "3S", "4S", "5S", "6S"]
+
+iex(2) > hand2 = ["3D", "QH", "4D", "JC", "7S"]
+
+iex(3) > Poker.player_rank({hand1, :black})
+           %Poker{
+                hand: ["2S", "3S", "4S", "5S", "6S"],
+                player: :black,
+                rank: {:straight_flush, 9},
+                suits: ["S", "S", "S", "S", "S"],
+                values: ["2", "3", "4", "5", "6"]
+              }
+ iex(4) > Poker.player_rank({hand2, :white})
+              %Poker{
+                hand: ["3D", "QH", "4D", "JC", "7S"],
+                player: :white,
+                rank: {:high_card, 1},
+                suits: ["D", "H", "D", "C", "S"],
+                values: ["3", "Q", "4", "J", "7"]
+              }
+              
+  iex(5) > first_player = {hand1, :black}
+               {["2S", "3S", "4S", "5S", "6S"], :black}
+  iex(6) > second_player = {hand2, :white}
+              {["3D", "QH", "4D", "JC", "7S"], :white}
+              
+  iex(7) > Poker.higher_rank_player(%{first_player: first_player, second_player: second_player})
+                    "black wins - straight_flush"
+
+```
